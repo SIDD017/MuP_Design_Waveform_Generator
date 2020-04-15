@@ -1,0 +1,666 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+noname.bin -- emu8086 assembler version: 4.08  
+ 
+[ 4/16/2020  --  1:49:05 AM ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       #make_bin#
+[   2]        :                                       
+[   3]        :                                       ; BIN is plain binary format similar to .com format, but not limited to 1 segment;
+[   4]        :                                       ; All values between # are directives, these values are saved into a separate .binf file.
+[   5]        :                                       ; Before loading .bin file emulator reads .binf file with the same file name.
+[   6]        :                                       
+[   7]        :                                       ; All directives are optional, if you don't need them, delete them.
+[   8]        :                                       
+[   9]        :                                       ; set loading address, .bin file will be loaded to this address:
+[  10]        :                                       #LOAD_SEGMENT=0000h#
+[  11]        :                                       #LOAD_OFFSET=0000h#
+[  12]        :                                       
+[  13]        :                                       ; set entry point:
+[  14]        :                                       #CS=0000h#	; same as loading segment
+[  15]        :                                       #IP=0000h#	; same as loading offset
+[  16]        :                                       
+[  17]        :                                       ; set segment registers
+[  18]        :                                       #DS=0000h#	; same as loading segment
+[  19]        :                                       #ES=0000h#	; same as loading segment
+[  20]        :                                       
+[  21]        :                                       ; set stack
+[  22]        :                                       #SS=0000h#	; same as loading segment
+[  23]        :                                       #SP=FFFEh#	; set to top of loading segment
+[  24]        :                                       
+[  25]        :                                       ; set general registers (optional)
+[  26]        :                                       #AX=0000h#
+[  27]        :                                       #BX=0000h#
+[  28]        :                                       #CX=0000h#
+[  29]        :                                       #DX=0000h#
+[  30]        :                                       #SI=0000h#
+[  31]        :                                       #DI=0000h#
+[  32]        :                                       #BP=0000h#
+[  33]        :                                       
+[  34]        :                                       ; add your code here
+[  35]        :                                       .MODEL TINY
+[  36]    0100: EB 6F                                 .DATA
+[  37]        :                                       
+[  38]        :                                       
+[  39]        :                                       ; starting of the program
+[  40]        :                                       
+[  41]        :                                       ;jmp st:
+[  42]        :                                       ;db 2042 dup(0)
+[  43]        :                                       ;st:  cli
+[  44]        :                                       
+[  45]    0102: 00                                    one_k db 0
+[  46]    0103: 00                                    vfac db 0
+[  47]    0104: 00                                    vfac1 db 0
+[  48]    0105: 00                                    sine_w db 0
+[  49]    0106: 00                                    triangular_w db 0
+[  50]    0107: 00                                    stepsize db 0
+[  51]    0108: 00                                    square_w db 0
+[  52]    0109: 00                                    one_hundred db 0
+[  53]    010A: 00                                    ten db 0
+[  54]    010B: 00 00                                 count dw 0
+[  55]    010D: 00 00 00 00 00 00 00 00 00 00 00 00   list db 50 dup(0)
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00                               
+[  56]    013F: 00 00 00 00 00 00 00 00 00 00 00 00   list1 db 50 dup(0)
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00                               
+[  57]        :                                       ; Giving names for the internal addresses of 8255
+[  58]        :                                       
+[  59]        :                                       portA equ 00H
+[  60]        :                                       portB equ 02H
+[  61]        :                                       portC equ 04H
+[  62]        :                                       cregPPI equ 06H
+[  63]        :                                       
+[  64]        :                                       ; Giving names for the internal addresses of 8253
+[  65]        :                                       
+[  66]        :                                       timer0 equ 08H
+[  67]        :                                       timer1 equ 0AH
+[  68]        :                                       timer2 equ 0CH
+[  69]        :                                       cregPIT equ 0EH
+[  70]        :                                       
+[  71]        :                                       ; Giving names to the different button hexcodes on keypad
+[  72]        :                                       
+[  73]        :                                       SINbutton equ 66H
+[  74]        :                                       TRIbutton equ 56H
+[  75]        :                                       SQUbutton equ 36H
+[  76]        :                                       vbutton equ 65H
+[  77]        :                                       OKbutton equ 55H
+[  78]        :                                       HUNbutton equ 35H
+[  79]        :                                       TENbutton equ 33H
+[  80]        :                                       GENbutton equ 63H
+[  81]        :                                       
+[  82]        :                                       ; Initializing the segments to start of ram
+[  83]    0171:                                       .code
+[  84]    0171:                                       .startup
+[  85]        :                                       
+[  86]    0171: B8 00 02                              mov     ax, 0200H
+[  87]    0174: 8E D8                                 mov     ds, ax
+[  88]    0176: 8E C0                                 mov     es, ax
+[  89]    0178: 8E D0                                 mov     ss, ax
+[  90]    017A: BC FE FF                              mov     sp, 0FFFEH
+[  91]    017D: B8 00 00                              mov     ax, 00H
+[  92]    0180: A2 03 01                              mov     vfac, al
+[  93]    0183: A2 02 01                              mov     one_k, al
+[  94]    0186: A2 04 01                              mov     vfac1, al
+[  95]    0189: A2 09 01                              mov     one_hundred, al
+[  96]    018C: A2 0A 01                              mov     ten, al
+[  97]    018F: A2 05 01                              mov     sine_w, al
+[  98]    0192: A2 06 01                              mov     triangular_w, al
+[  99]    0195: A2 08 01                              mov     square_w, al
+[ 100]        :                                       
+[ 101]        :                                       ; Table to generate sine wave
+[ 102]        :                                       
+[ 103]    0198: BF 0D 01                              lea     di,  list
+[ 104]    019B: B8 80 00                              mov ax,128
+[ 105]    019E: 89 05                                 mov     [di],ax
+[ 106]    01A0: B8 90 00                              mov ax, 144
+[ 107]    01A3: 89 45 01                              mov     [di+1],ax
+[ 108]    01A6: B8 A0 00                              mov ax,160
+[ 109]    01A9: 89 45 02                              mov     [di+2],ax
+[ 110]    01AC: B8 B0 00                              mov ax,176
+[ 111]    01AF: 89 45 03                              mov     [di+3],ax
+[ 112]    01B2: B8 BF 00                              mov ax,191
+[ 113]    01B5: 89 45 04                              mov     [di+4],ax
+[ 114]    01B8: B8 CD 00                              mov ax,205
+[ 115]    01BB: 89 45 05                              mov     [di+5],ax
+[ 116]    01BE: B8 DA 00                              mov ax,218
+[ 117]    01C1: 89 45 06                              mov     [di+6],ax
+[ 118]    01C4: B8 E4 00                              mov ax,228
+[ 119]    01C7: 89 45 07                              mov     [di+7],ax
+[ 120]    01CA: B8 EE 00                              mov ax,238
+[ 121]    01CD: 89 45 08                              mov     [di+8],ax
+[ 122]    01D0: B8 F5 00                              mov ax,245
+[ 123]    01D3: 89 45 09                              mov     [di+9],ax
+[ 124]    01D6: B8 FB 00                              mov ax,251
+[ 125]    01D9: 89 45 0A                              mov     [di+10],ax
+[ 126]    01DC: B8 FE 00                              mov ax,254
+[ 127]    01DF: 89 45 0B                              mov     [di+11],ax
+[ 128]    01E2: B8 FF 00                              mov ax,255
+[ 129]    01E5: 89 45 0C                              mov     [di+12],ax
+[ 130]    01E8: B8 FE 00                              mov ax,254
+[ 131]    01EB: 89 45 0D                              mov        [di+13],ax
+[ 132]    01EE: B8 FB 00                              mov ax,251
+[ 133]    01F1: 89 45 0E                              mov        [di+14],ax
+[ 134]    01F4: B8 F5 00                              mov ax,245
+[ 135]    01F7: 89 45 0F                              mov        [di+15],ax
+[ 136]    01FA: B8 EE 00                              mov ax,238
+[ 137]    01FD: 89 45 10                              mov        [di+16],ax
+[ 138]    0200: B8 E4 00                              mov ax,228
+[ 139]    0203: 89 45 11                              mov        [di+17],ax
+[ 140]    0206: B8 DA 00                              mov ax,218
+[ 141]    0209: 89 45 12                              mov        [di+18],ax
+[ 142]    020C: B8 CD 00                              mov ax,205
+[ 143]    020F: 89 45 13                              mov        [di+19],ax
+[ 144]    0212: B8 BF 00                              mov ax,191
+[ 145]    0215: 89 45 14                              mov        [di+20],ax
+[ 146]    0218: B8 B0 00                              mov ax,176
+[ 147]    021B: 89 45 15                              mov        [di+21],ax
+[ 148]    021E: B8 A0 00                              mov ax,160
+[ 149]    0221: 89 45 16                              mov        [di+22],ax
+[ 150]    0224: B8 90 00                              mov ax,144
+[ 151]    0227: 89 45 17                              mov        [di+23],ax
+[ 152]    022A: B8 80 00                              mov ax,128
+[ 153]    022D: 89 45 18                              mov        [di+24],ax
+[ 154]    0230: B8 7F 00                              mov ax,127
+[ 155]    0233: 89 45 19                              mov        [di+25],ax
+[ 156]    0236: B8 6F 00                              mov ax,111
+[ 157]    0239: 89 45 1A                              mov        [di+26],ax
+[ 158]    023C: B8 5F 00                              mov ax,95
+[ 159]    023F: 89 45 1B                              mov        [di+27],ax
+[ 160]    0242: B8 4F 00                              mov ax,79
+[ 161]    0245: 89 45 1C                              mov        [di+28],ax
+[ 162]    0248: B8 40 00                              mov ax,64
+[ 163]    024B: 89 45 1D                              mov        [di+29],ax
+[ 164]    024E: B8 32 00                              mov ax,50
+[ 165]    0251: 89 45 1E                              mov        [di+30],ax
+[ 166]    0254: B8 25 00                              mov ax,37
+[ 167]    0257: 89 45 1F                              mov        [di+31],ax
+[ 168]    025A: B8 1B 00                              mov ax,27
+[ 169]    025D: 89 45 20                              mov        [di+32],ax
+[ 170]    0260: B8 11 00                              mov ax,17
+[ 171]    0263: 89 45 21                              mov        [di+33],ax
+[ 172]    0266: B8 0A 00                              mov ax,10
+[ 173]    0269: 89 45 22                              mov        [di+34],ax
+[ 174]    026C: B8 04 00                              mov ax,4
+[ 175]    026F: 89 45 23                              mov        [di+35],ax
+[ 176]    0272: B8 01 00                              mov ax,1
+[ 177]    0275: 89 45 24                              mov        [di+36],ax
+[ 178]    0278: B8 00 00                              mov ax,0
+[ 179]    027B: 89 45 25                              mov        [di+37],ax
+[ 180]    027E: B8 01 00                              mov ax,1
+[ 181]    0281: 89 45 26                              mov        [di+38],ax
+[ 182]    0284: B8 04 00                              mov ax,4
+[ 183]    0287: 89 45 27                              mov        [di+39],ax
+[ 184]    028A: B8 0A 00                              mov ax,10
+[ 185]    028D: 89 45 28                              mov        [di+40],ax
+[ 186]    0290: B8 11 00                              mov ax,17
+[ 187]    0293: 89 45 29                              mov        [di+41],ax
+[ 188]    0296: B8 1B 00                              mov ax,27
+[ 189]    0299: 89 45 2A                              mov        [di+42],ax
+[ 190]    029C: B8 25 00                              mov ax,37
+[ 191]    029F: 89 45 2B                              mov        [di+43],ax
+[ 192]    02A2: B8 32 00                              mov ax,50
+[ 193]    02A5: 89 45 2C                              mov        [di+44],ax
+[ 194]    02A8: B8 40 00                              mov ax,64
+[ 195]    02AB: 89 45 2D                              mov        [di+45],ax
+[ 196]    02AE: B8 4F 00                              mov ax,79
+[ 197]    02B1: 89 45 2E                              mov        [di+46],ax
+[ 198]    02B4: B8 5F 00                              mov ax,95
+[ 199]    02B7: 89 45 2F                              mov        [di+47],ax
+[ 200]    02BA: B8 6F 00                              mov ax,111
+[ 201]    02BD: 89 45 30                              mov        [di+48],ax
+[ 202]    02C0: B8 7F 00                              mov ax,127
+[ 203]    02C3: 89 45 31                              mov        [di+49],ax
+[ 204]        :                                       
+[ 205]        :                                       
+[ 206]        :                                       ;creating copy of sine table for reuse
+[ 207]    02C6: BE 0D 01                              lea 	si, list
+[ 208]    02C9: BF 3F 01                              lea     di,  list1
+[ 209]    02CC: B9 32 00                              mov cx,50
+[ 210]    02CF: 8A 04                                 fill1: mov al,[si]
+[ 211]    02D1: 88 05                                 	mov [di],al
+[ 212]    02D3: 46                                    	inc si
+[ 213]    02D4: 47                                    	inc di
+[ 214]    02D5: 49                                    	dec cx
+[ 215]    02D6: 83 F9 00                              	cmp cx,0
+[ 216]    02D9: 75 F4                                 	jnz fill1
+[ 217]        :                                       
+[ 218]        :                                       ; Initializing 8255 (setting it to i/o mode)
+[ 219]        :                                       
+[ 220]    02DB: B0 8A                                 mov     al, 8AH
+[ 221]    02DD: E6 06                                 out     cregPPI, al
+[ 222]        :                                       
+[ 223]        :                                       ; Keypad interfacing
+[ 224]        :                                       
+[ 225]    02DF:                                       key1:
+[ 226]    02DF: B0 00                                 mov        al, 00H
+[ 227]    02E1: E6 04                                 out     portC, al
+[ 228]        :                                       
+[ 229]        :                                       ; Checking for key release
+[ 230]        :                                       
+[ 231]    02E3:                                       key2:
+[ 232]    02E3: E4 04                                 in      al, portC
+[ 233]    02E5: 24 70                                 and     al, 70H
+[ 234]    02E7: 3C 70                                 cmp     al, 70H
+[ 235]    02E9: 75 F8                                 jne     key2
+[ 236]        :                                       
+[ 237]    02EB: B0 00                                 mov      al, 00H
+[ 238]    02ED: E6 04                                 out      portC, al
+[ 239]        :                                       
+[ 240]        :                                       ; Checking for key press
+[ 241]        :                                       
+[ 242]    02EF:                                       key3:
+[ 243]    02EF: E4 04                                 in      al, portC
+[ 244]    02F1: 24 70                                 and     al, 70H
+[ 245]    02F3: 3C 70                                 cmp     al, 70H
+[ 246]    02F5: 74 F8                                 je      key3
+[ 247]        :                                       
+[ 248]        :                                       ; Once key press is detected, then find which row is the pressed key in
+[ 249]        :                                       
+[ 250]    02F7: B0 06                                 mov     al, 06H
+[ 251]    02F9: 8A D8                                 mov     bl, al
+[ 252]    02FB: E6 04                                 out     portC, al
+[ 253]    02FD: E4 04                                 in      al, portC
+[ 254]    02FF: 24 70                                 and     al, 70H
+[ 255]    0301: 3C 70                                 cmp     al, 70H
+[ 256]    0303: 75 1C                                 jne     key4
+[ 257]        :                                       
+[ 258]    0305: B0 05                                 mov     al, 05H
+[ 259]    0307: 8A D8                                 mov     bl, al
+[ 260]    0309: E6 04                                 out     portC, al
+[ 261]    030B: E4 04                                 in      al, portC
+[ 262]    030D: 24 70                                 and     al, 70H
+[ 263]    030F: 3C 70                                 cmp     al, 70H
+[ 264]    0311: 75 0E                                 jne     key4
+[ 265]        :                                       
+[ 266]    0313: B0 03                                 mov     al, 03H
+[ 267]    0315: 8A D8                                 mov     bl, al
+[ 268]    0317: E6 04                                 out     portC, al
+[ 269]    0319: E4 04                                 in      al, portC
+[ 270]    031B: 24 70                                 and     al, 70H
+[ 271]    031D: 3C 70                                 cmp     al, 70H
+[ 272]    031F: 74 CE                                 je      key3
+[ 273]        :                                       
+[ 274]        :                                       ; Code reaches here once a key has been pressed and its hex code is stored in the al and bl registers
+[ 275]        :                                       ; Now we check which button that hexcode corresponds to:
+[ 276]        :                                       
+[ 277]    0321: 0A C3                                 key4:or     al, bl
+[ 278]    0323: 3C 66                                 cmp     al, SINbutton
+[ 279]        :                                       ; If SIN button is pressed, then:
+[ 280]    0325: 75 06                                 jnz     trib
+[ 281]    0327: FE 06 05 01                           inc     sine_w                        ;inc makes sine_w 1 which means it is selected
+[ 282]    032B: EB B2                                 jmp     key1
+[ 283]        :                                       
+[ 284]    032D: 3C 56                                 trib:cmp     al, TRIbutton
+[ 285]        :                                       ; Else if TRI button is pressed, then:
+[ 286]    032F: 75 06                                 jnz      squb
+[ 287]    0331: FE 06 06 01                           inc  triangular_w
+[ 288]    0335: EB A8                                 jmp     key1
+[ 289]        :                                       
+[ 290]    0337: 3C 36                                 squb:cmp     al, SQUbutton
+[ 291]        :                                       ; Else if SQU button is pressed, then:
+[ 292]    0339: 75 06                                 jnz     vfb
+[ 293]    033B: FE 06 08 01                           inc     square_w
+[ 294]    033F: EB 9E                                 jmp     key1
+[ 295]        :                                       
+[ 296]    0341: 3C 65                                 vfb:    cmp al, vbutton
+[ 297]        :                                       ;else if vbutton is pressed
+[ 298]    0343: 75 06                                 jnz okb
+[ 299]    0345: FE 06 03 01                           inc vfac
+[ 300]    0349: EB 94                                 jmp key1
+[ 301]        :                                       
+[ 302]        :                                       
+[ 303]    034B: 3C 55                                 okb:cmp     al, OKbutton
+[ 304]        :                                       ; Else, if 1K button is pressed, then:
+[ 305]    034D: 75 06                                 jnz      hunb
+[ 306]    034F: FE 06 02 01                           inc     one_k
+[ 307]    0353: EB 8A                                 jmp     key1
+[ 308]        :                                       
+[ 309]    0355: 3C 35                                 hunb:cmp     al, HUNbutton
+[ 310]        :                                       ; Else, if 100 button is pressed, then:
+[ 311]    0357: 75 06                                 jnz      tenb
+[ 312]    0359: FE 06 09 01                           inc     one_hundred
+[ 313]    035D: EB 80                                 jmp     key1
+[ 314]        :                                       
+[ 315]    035F: 3C 33                                 tenb:cmp     al, TENbutton
+[ 316]        :                                       ; Else, if 10 button is pressed, then:
+[ 317]    0361: 75 07                                 jnz      genb
+[ 318]    0363: FE 06 0A 01                           inc     ten
+[ 319]    0367: E9 75 FF                              jmp     key1
+[ 320]        :                                       
+[ 321]    036A: 3C 63                                 genb:cmp     al, GENbutton
+[ 322]        :                                       ; Else, if GEN button was pressed:
+[ 323]    036C: 74 03                                 jz      end_k
+[ 324]    036E: E9 6E FF                              jmp key1
+[ 325]        :                                       
+[ 326]    0371:                                       end_k:
+[ 327]        :                                       
+[ 328]        :                                       ; Code reaches this point if GEN button is pressed.
+[ 329]        :                                       ; In that case, compute the count required to load in 8253 (PIT)
+[ 330]        :                                       
+[ 331]    0371: E8 A2 01                              call computeCount
+[ 332]        :                                       
+[ 333]        :                                       ; BX register now stores the frequency in decaHertz
+[ 334]        :                                       
+[ 335]    0374: BA 00 00                              mov     dx, 00H
+[ 336]    0377: B8 10 27                              mov     ax, 10000
+[ 337]    037A: F7 F3                                 div     bx ; dividing 10000 by bx. Quotient stored in ax
+[ 338]        :                                       
+[ 339]    037C: A3 0B 01                              i:  mov count, ax
+[ 340]        :                                       
+[ 341]        :                                       ; Calculated count present in count
+[ 342]        :                                       ; Storing count
+[ 343]        :                                       
+[ 344]    037F: B0 00                                 mov     al, 00H
+[ 345]    0381: E6 04                                 out     portC, al
+[ 346]        :                                       
+[ 347]        :                                       ; Wait for GEN key release
+[ 348]        :                                       
+[ 349]    0383: E8 C8 01                              call waitForGEN
+[ 350]        :                                       
+[ 351]        :                                       
+[ 352]        :                                       ;storing cfac value
+[ 353]    0386: 8A 16 03 01                           mov dl,vfac
+[ 354]    038A: 88 16 04 01                           mov vfac1,dl
+[ 355]        :                                       
+[ 356]        :                                       ; BX now stores the value of (actual count * sampling rate)
+[ 357]        :                                       ; Here we have used the sampling rate of ((13*2)-1)*2 = 50
+[ 358]        :                                       
+[ 359]        :                                       ; Selecting the wave form whose button has been pressed the maximum number of times:
+[ 360]        :                                       ; If all have been pressed the same number of times, then sine wave will be selected
+[ 361]        :                                       
+[ 362]    038E: A0 05 01                              mov     al, sine_w
+[ 363]    0391: 3A 06 06 01                           cmp     al, triangular_w
+[ 364]    0395: 7C 09                                 jl      slt
+[ 365]    0397: 3A 06 08 01                           cmp        al, square_w
+[ 366]    039B: 7F 0F                                 jg        sine_gen
+[ 367]    039D: E9 D7 00                              jmp     sq_gen
+[ 368]    03A0: A0 06 01                              slt:mov     al, triangular_w
+[ 369]    03A3: 3A 06 08 01                           cmp     al, square_w
+[ 370]    03A7: 7F 55                                 jg         tri_gen
+[ 371]    03A9: E9 CB 00                              jmp     sq_gen
+[ 372]        :                                       
+[ 373]        :                                       
+[ 374]        :                                       
+[ 375]        :                                       
+[ 376]        :                                       ; Code to generate sine wave
+[ 377]        :                                       
+[ 378]    03AC:                                       sine_gen:
+[ 379]    03AC: BA 00 00                              mov dx, portA
+[ 380]        :                                       ;mov dx, 00H
+[ 381]    03AF: A1 0B 01                              mov ax,count
+[ 382]    03B2: B3 32                                 mov bl,50
+[ 383]    03B4: F6 F3                                 div bl
+[ 384]    03B6: B4 00                                 mov ah,00
+[ 385]    03B8: 8A D8                                 mov bl, al
+[ 386]        :                                       
+[ 387]        :                                       ; Initialize timer
+[ 388]    03BA: E8 81 01                              call initTimer
+[ 389]    03BD: BE 3F 01                              lea si,list1
+[ 390]    03C0: BF 0D 01                              lea di, list
+[ 391]    03C3: B1 32                                 mov cl, 50
+[ 392]        :                                       
+[ 393]    03C5: 8A 04                                 x99: mov al, [si]
+[ 394]    03C7: F6 26 03 01                           mul vfac
+[ 395]    03CB: B3 0A                                 mov bl,10
+[ 396]    03CD: F6 F3                                 div bl
+[ 397]    03CF: 88 05                                 mov [di],al
+[ 398]    03D1: 46                                    inc si
+[ 399]    03D2: 47                                    inc di
+[ 400]    03D3: E2 F0                                 loop x99			;loop to change values of sine table according to given input
+[ 401]        :                                       
+[ 402]        :                                       
+[ 403]    03D5:                                       l5:
+[ 404]    03D5: BE 0D 01                              lea     si, list
+[ 405]    03D8: B1 32                                 mov     cl, 50
+[ 406]    03DA:                                       l1:
+[ 407]    03DA: 8A 04                                 mov     al, [si]
+[ 408]    03DC: E6 00                                 out     portA, al
+[ 409]        :                                       ;call wait2
+[ 410]    03DE: E4 04                                 in      al, portC
+[ 411]    03E0: 24 70                                 and     al, 70H
+[ 412]    03E2: 3C 70                                 cmp     al, 70H
+[ 413]    03E4: 74 03 E9 E8 00                        jne     key
+[ 414]    03E9: E8 45 01                              call    wait2
+[ 415]    03EC: E4 04                                 in      al, portC
+[ 416]    03EE: 24 70                                 and     al, 70H
+[ 417]    03F0: 3C 70                                 cmp     al, 70H
+[ 418]    03F2: 74 03 E9 DA 00                        jne     key
+[ 419]    03F7: 83 C6 01                              J1: add     si, 01H
+[ 420]    03FA: E2 DE                                 loop    l1
+[ 421]    03FC: EB D7                                 jmp     l5
+[ 422]        :                                       
+[ 423]        :                                       ; Code to generate triangular wave
+[ 424]        :                                       
+[ 425]    03FE:                                       tri_gen:
+[ 426]    03FE: BA 00 00                              mov     dx, 00H
+[ 427]    0401: A1 0B 01                              mov     ax, count
+[ 428]    0404: BB 1E 00                              mov     bx, 30
+[ 429]    0407: F7 F3                                 div     bx
+[ 430]    0409:                                       qr1:
+[ 431]    0409: B4 00                                 mov     ah, 00
+[ 432]    040B: 8B D8                                 mov     bx, ax
+[ 433]        :                                       ; Initialize timer
+[ 434]    040D: E8 2E 01                              call initTimer
+[ 435]    0410: B0 19                                 mov al,25
+[ 436]    0412: F6 26 03 01                           mul vfac
+[ 437]    0416: A2 03 01                              mov vfac,al
+[ 438]    0419: B4 00                                 mov ah,00h
+[ 439]    041B: B3 0F                                 mov bl,15
+[ 440]    041D: F6 F3                                 div bl
+[ 441]    041F: A2 07 01                              mov stepsize,al			;stepsize such that it takes 15 steps to reach max amplitude
+[ 442]    0422: B3 0F                                 mov bl,15
+[ 443]    0424: F6 E3                                 mul bl
+[ 444]    0426: A2 03 01                              mov vfac,al			;vfac now has max amplitude
+[ 445]        :                                       
+[ 446]    0429: B0 00                                 mov     al, 00H
+[ 447]    042B:                                       g1:
+[ 448]    042B: E6 00                                 out     portA, al
+[ 449]    042D: 8A D8                                 mov     bl, al
+[ 450]        :                                       ;call    wait2
+[ 451]    042F: E4 04                                 in      al, portC
+[ 452]    0431: 24 70                                 and     al, 70H
+[ 453]    0433: 3C 70                                 cmp     al, 70H
+[ 454]    0435: 74 03 E9 97 00                        jne     key
+[ 455]    043A: E8 F4 00                              call    wait2
+[ 456]    043D: E4 04                                 in      al, portC
+[ 457]    043F: 24 70                                 and     al, 70H
+[ 458]    0441: 3C 70                                 cmp     al, 70H
+[ 459]    0443: 74 03 E9 89 00                        jne     key
+[ 460]    0448: 8A C3                                 mov     al, bl
+[ 461]    044A: 02 06 07 01                           add     al, stepsize
+[ 462]    044E: 3A 06 03 01                           cmp     al, vfac
+[ 463]    0452: 75 D7                                 jnz     g1
+[ 464]    0454:                                       g2:
+[ 465]    0454: E6 00                                 out     portA, al
+[ 466]    0456: 8A D8                                 mov     bl, al
+[ 467]        :                                       ;call    wait2
+[ 468]    0458: E4 04                                 in      al, portC
+[ 469]    045A: 24 70                                 and     al, 70H
+[ 470]    045C: 3C 70                                 cmp     al, 70H
+[ 471]    045E: 75 71                                 jne     key
+[ 472]    0460: E8 CE 00                              call    wait2
+[ 473]    0463: E4 04                                 in      al, portC
+[ 474]    0465: 24 70                                 and     al, 70H
+[ 475]    0467: 3C 70                                 cmp     al, 70H
+[ 476]    0469: 75 66                                 jne     key
+[ 477]    046B: 8A C3                                 mov     al, bl
+[ 478]    046D: 2A 06 07 01                           sub     al, stepsize
+[ 479]    0471: 3C 00                                 cmp     al, 00H
+[ 480]    0473: 75 DF                                 jnz     g2
+[ 481]    0475: EB B4                                 jmp     g1
+[ 482]        :                                       
+[ 483]        :                                       ; Code to generate square wave:
+[ 484]        :                                       
+[ 485]    0477:                                       sq_gen:
+[ 486]    0477: BA 00 00                              mov dx, portA
+[ 487]    047A: A1 0B 01                              mov ax, count
+[ 488]    047D: BB 02 00                              mov bx, 02H
+[ 489]    0480: F7 F3                                 div bx
+[ 490]    0482: 8B D8                                 mov bx, ax
+[ 491]    0484: B0 19                                 mov al,25
+[ 492]    0486: F6 26 03 01                           mul vfac
+[ 493]    048A: A2 03 01                              mov vfac,al
+[ 494]    048D: 8B C3                                 mov ax,bx
+[ 495]        :                                       
+[ 496]        :                                       ; Initialize timer
+[ 497]    048F: E8 AC 00                              call initTimer
+[ 498]    0492: B0 80                                 mov     al, 80H
+[ 499]    0494: E6 00                                 out     portA, al
+[ 500]        :                                       
+[ 501]    0496: B0 00                                 s:  mov     al, 00H
+[ 502]    0498: E6 00                                 out     portA, al
+[ 503]    049A: E4 04                                 in      al, portC
+[ 504]    049C: 24 70                                 and     al, 70H
+[ 505]    049E: 3C 70                                 cmp     al, 70H
+[ 506]    04A0: 75 2F                                 jne     key
+[ 507]    04A2: E8 8C 00                              call    wait2
+[ 508]    04A5: E4 04                                 in      al, portC
+[ 509]    04A7: 24 70                                 and     al, 70H
+[ 510]    04A9: 3C 70                                 cmp     al, 70H
+[ 511]    04AB: 75 24                                 jne     key
+[ 512]        :                                       
+[ 513]        :                                       
+[ 514]    04AD: A0 03 01                              mov     al, vfac
+[ 515]    04B0: E6 00                                 out     portA, al
+[ 516]    04B2: A0 03 01                              mov     al, vfac
+[ 517]    04B5: E6 00                                 out     portA, al
+[ 518]    04B7: E4 04                                 in      al, portC
+[ 519]    04B9: 24 70                                 and     al, 70H
+[ 520]    04BB: 3C 70                                 cmp     al, 70H
+[ 521]    04BD: 75 12                                 jne     key
+[ 522]    04BF: E8 6F 00                              call    wait2
+[ 523]    04C2: E4 04                                 in      al, portC
+[ 524]    04C4: 24 70                                 and     al, 70H
+[ 525]    04C6: 3C 70                                 cmp     al, 70H
+[ 526]    04C8: 75 07                                 jne     key
+[ 527]    04CA: A0 03 01                              mov     al, vfac
+[ 528]    04CD: E6 00                                 out     portA, al
+[ 529]    04CF: EB C5                                 jmp     s
+[ 530]        :                                       
+[ 531]        :                                       ; Checking if a key is pressed
+[ 532]        :                                       
+[ 533]    04D1:                                       key:
+[ 534]    04D1: B0 06                                 mov     al, 06H
+[ 535]    04D3: 8A D8                                 mov     bl, al
+[ 536]        :                                       ;;;;out     portC, al
+[ 537]    04D5: E4 04                                 in      al, portC
+[ 538]    04D7: 24 70                                 and     al, 70H
+[ 539]    04D9: 3C 70                                 cmp     al, 70H
+[ 540]    04DB: 75 18                                 jnz     k3
+[ 541]        :                                       
+[ 542]    04DD: B0 05                                 mov     al, 05H
+[ 543]    04DF: 8A D8                                 mov     bl, al
+[ 544]        :                                       ;;;;out     portC, al
+[ 545]    04E1: E4 04                                 in      al, portC
+[ 546]    04E3: 24 70                                 and     al, 70H
+[ 547]    04E5: 3C 70                                 cmp     al, 70H
+[ 548]    04E7: 75 0C                                 jnz     k3
+[ 549]        :                                       
+[ 550]    04E9: B0 03                                 mov     al, 03H
+[ 551]    04EB: 8A D8                                 mov     bl, al
+[ 552]        :                                       ;;;;out     portC, al
+[ 553]    04ED: E4 04                                 in      al, portC
+[ 554]    04EF: 24 70                                 and     al, 70H
+[ 555]    04F1: 3C 70                                 cmp     al, 70H
+[ 556]    04F3: 74 DC                                 je      key
+[ 557]        :                                       
+[ 558]        :                                       ; If a key is pressed, find out which one:
+[ 559]        :                                       
+[ 560]    04F5: 8A 16 04 01                           k3: mov dl,vfac1
+[ 561]    04F9: 88 16 03 01                           mov vfac,dl
+[ 562]    04FD: 0A C3                                 or      al, bl
+[ 563]        :                                       
+[ 564]        :                                       ; If SIN button is pressed, then:
+[ 565]    04FF: 3C 66                                 cmp     al, SINbutton
+[ 566]    0501: 75 03 E9 A6 FE                        jz      sine_gen
+[ 567]        :                                       
+[ 568]        :                                       ; Else, if TRI button is pressed, then:
+[ 569]    0506: 3C 56                                 cmp     al, TRIbutton
+[ 570]    0508: 75 03 E9 F1 FE                        jz      tri_gen
+[ 571]        :                                       
+[ 572]        :                                       ; Else, if SQU button is pressed, then:
+[ 573]    050D: 3C 36                                 cmp     al, SQUbutton
+[ 574]    050F: 75 03 E9 63 FF                        jz      sq_gen
+[ 575]        :                                       
+[ 576]        :                                       ; Else (i.e. if none of the waveform buttons were pressed), then:
+[ 577]    0514: EB BB                                 jmp key
+[ 578]        :                                       
+[ 579]        :                                       ; Procedure to compute the value of count
+[ 580]        :                                       
+[ 581]    0516:                                       computeCount proc
+[ 582]    0516: BB 00 00                              mov     bx, 00H
+[ 583]    0519: B0 64                                 mov     al, 100
+[ 584]    051B: F6 26 02 01                           mul     one_k
+[ 585]    051F: 03 D8                                 add     bx, ax
+[ 586]    0521: B0 0A                                 mov     al, 0AH
+[ 587]    0523: F6 26 09 01                           mul     one_hundred
+[ 588]    0527: 03 D8                                 add     bx, ax
+[ 589]    0529: A0 0A 01                              mov     al, ten
+[ 590]    052C: B4 00                                 mov     ah, 00H
+[ 591]    052E: 03 D8                                 add     bx, ax
+[ 592]    0530: C3                                    ret
+[ 593]        :                                       endp
+[ 594]        :                                       
+[ 595]        :                                       ; Wait procedure
+[ 596]        :                                       
+[ 597]    0531:                                       wait2 proc
+[ 598]    0531: E4 02                                 v1: in      al, portB
+[ 599]    0533: 3C 00                                 cmp     al, 00H
+[ 600]    0535: 75 FA                                 jne     v1
+[ 601]    0537: E4 02                                 v2: in      al, portB
+[ 602]    0539: 3C 80                                 cmp     al, 80H
+[ 603]    053B: 75 FA                                 jne     v2
+[ 604]    053D: C3                                    ret
+[ 605]        :                                       endp
+[ 606]        :                                       
+[ 607]        :                                       ; Procedure to initialize the 8253 (PIT)
+[ 608]        :                                       
+[ 609]    053E:                                       initTimer proc
+[ 610]        :                                       ; Initializing the timer with control word
+[ 611]    053E: BA 19 00                              mov dx, 0019H
+[ 612]        :                                       
+[ 613]    0541: B0 36                                 mov     al, 00110110b
+[ 614]    0543: E6 0E                                 out     cregPIT, al
+[ 615]        :                                       
+[ 616]        :                                       ; Loading LSB of count value
+[ 617]    0545: 8A C3                                 mov     al, bl
+[ 618]    0547: E6 08                                 out     timer0, al
+[ 619]        :                                       ; Loading MSB of count value
+[ 620]    0549: 8A C7                                 mov     al, bh
+[ 621]    054B: E6 08                                 out     timer0, al
+[ 622]        :                                       
+[ 623]    054D: C3                                    ret
+[ 624]        :                                       endp
+[ 625]        :                                       
+[ 626]        :                                       ; Procedure to wait for GEN key release
+[ 627]        :                                       
+[ 628]    054E:                                       waitForGEN proc
+[ 629]    054E: E4 04                                 k1: in      al, portC
+[ 630]    0550: 24 70                                 and     al, 70H
+[ 631]    0552: 3C 70                                 cmp     al, 70H
+[ 632]    0554: 75 F8                                 jnz     k1
+[ 633]    0556: C3                                    ret
+[ 634]        :                                       endp
+[ 635]    0557: B8 00 4C CD 21                        .EXIT
+[ 636]        :                                       END
+[ 637]        :                                       
+[ 638]        :                                       
+[ 639]        :                                       
+[ 640]        :                                       
+ 
+===================================================================================================
+ 
+
+
+
+
+===================================================================================================
